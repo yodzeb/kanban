@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Kanban Board</title>
+  <style>
+    body { font-family: sans-serif; margin: 20px; background: #f8f9fa; }
+    .board { display: flex; gap: 20px; flex-wrap: wrap; }
+    .column { flex: 1; min-width: 250px; background: #fff; border: 1px solid #ccc; border-radius: 8px; padding: 10px; }
+    .column h2 { margin-top: 0; }
+    .task { border: 1px solid #ddd; border-radius: 6px; padding: 8px; margin-bottom: 10px; background: #fefefe; }
+    .controls { margin-top: 10px; }
+    .controls button { margin-right: 5px; }
+    .new-task, .settings { margin-top: 20px; }
+    .new-task input, .new-task textarea, .settings input { width: 100%; margin-bottom: 10px; padding: 5px; }
+    .popup { position: fixed; top: 10%; left: 10%; right: 10%; background: #fff; border: 1px solid #ccc; padding: 20px; z-index: 1000; max-height: 80%; overflow: auto; }
+    .popup pre { white-space: pre-wrap; word-break: break-word; }
+    .overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 999; }
+  </style>
+</head>
+<body>
+
+  <h1>Simple Kanban Board</h1>
+
+  <div class="settings">
+    <label>
+      Hide tasks in "Done" after
+      <input type="number" id="hideAfterDays" min="1" />
+      days
+    </label>
+  </div>
+
+  <div class="actions">
+    <button onclick="exportData()">Export JSON</button>
+    <input type="file" id="importFile" style="display:none" accept=".json" />
+    <button onclick="document.getElementById('importFile').click()">Import JSON</button>
+    <button onclick="showReport()">Generate Report</button>
+  </div>
+
+  <div class="board" id="board"></div>
+
+  <div class="new-task">
+    <h2>Add New Task</h2>
+    <input type="text" id="taskTitle" placeholder="Title" />
+    <textarea id="taskDescription" placeholder="Description"></textarea>
+    <button onclick="addTask()">Add Task</button>
+  </div>
+
+  <div id="popup" style="display:none;">
+    <div class="overlay" onclick="hidePopup()"></div>
+    <div class="popup">
+      <h2>Report</h2>
+      <pre id="reportText"></pre>
+      <button onclick="hidePopup()">Close</button>
+    </div>
+  </div>
+
+  
+  <script>
+    const STORAGE_KEY = 'kanbanData';
+    const SETTINGS_KEY = 'kanbanSettings';
+    const columns = ['todo', 'doing', 'done'];
+
+    let tasks = JSON.parse(localStorage.getItem(STORAGE_KEY)) || { todo: [], doing: [], done: [] };
+    let settings = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || { hideAfterDays: 7 };
+
+    document.getElementById('hideAfterDays').value = settings.hideAfterDays;
+    document.getElementById('hideAfterDays').addEventListener('input', e => {
+      settings.hideAfterDays = parseInt(e.target.value) || 1;
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    });
+
+    function deleteTask(id, column) {
+
+        tasks[column].forEach ((t, index) => {
+            if (t.id == id) {
+                if (confirm("Delete "+t.title)) {
+                    tasks[column].splice(index, 1);
+                    saveTasks();
+                    renderBoard();
+                }
+            }
+        });
+    }
+    
+    function editTask(id, column, button) {
+        const taskIndex = tasks[column].findIndex(t => t.id === id);
+        const task = tasks[column][taskIndex];
+        const taskEl = button.closest('.task');
+        const content = taskEl.querySelector('strong').textContent;
+        const desc = taskEl.querySelector('p').textContent;
+
+        taskEl.innerHTML = `
+    <input type="text" value="${content}" class="edit-title" style="width:100%; margin-bottom:5px;" />
+    <textarea class="edit-desc" style="width:100%; margin-bottom:5px;">${desc}</textarea>
+    <button onclick="saveTaskEdit(${id}, '${column}', this)">Save</button>
+  `;
+    }
+
+    function saveTaskEdit(id, column, button) {
+        const taskIndex = tasks[column].findIndex(t => t.id === id);
+        const task = tasks[column][taskIndex];
+        const taskEl = button.closest('.task');
+        const newTitle = taskEl.querySelector('.edit-title').value.trim();
+        const newDesc = taskEl.querySelector('.edit-desc').value.trim();
+        
+        if (newTitle) {
+            task.title = newTitle;
+            task.description = newDesc;
+            saveTasks();
+            renderBoard();
+        }
+    }
+    
+    function saveTasks() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+    }
+
+    function renderBoard() {
+      const board = document.getElementById('board');
+      board.innerHTML = '';
+      for (const column of columns) {
+        const col = document.createElement('div');
+        col.className = 'column';
+        col.dataset.column = column;
+        col.ondragover = e => e.preventDefault();
+        col.ondrop = e => {
+          const id = parseInt(e.dataTransfer.getData('text/plain'));
+          const from = findTaskColumn(id);
+          if (from && from !== column) moveTask(id, from, column);
+        };
+
+        col.innerHTML = `<h2>${column.toUpperCase()}</h2>`;
+        tasks[column].forEach(task => {
+          if (task.hidden) return;
+          const taskEl = document.createElement('div');
+          taskEl.className = 'task';
+          taskEl.draggable = true;
+          taskEl.ondragstart = e => e.dataTransfer.setData('text/plain', task.id);
+          taskEl.innerHTML = `
+            <strong>${task.title}</strong>
+            <p>${task.description}</p>
+            <div class="controls">
+             ${columns.filter(c => c !== column).map(c => `<button onclick="moveTask(${task.id}, '${column}', '${c}')">${c}</button>`).join('')}
+             <button onclick="editTask(${task.id}, '${column}', this)">Edit</button>
+             <button onclick="deleteTask(${task.id}, '${column}')">Delete</button>
+            </div>`;
+          col.appendChild(taskEl);
+        });
+        board.appendChild(col);
+      }
+    }
+
+    function addTask() {
+      const title = document.getElementById('taskTitle').value.trim();
+      const description = document.getElementById('taskDescription').value.trim();
+      if (!title) return;
+      const task = {
+        id: Date.now(),
+        title,
+        description,
+        createdAt: Date.now(),
+        movedToDoneAt: null,
+        hidden: false
+      };
+      tasks.todo.push(task);
+      saveTasks();
+      renderBoard();
+      document.getElementById('taskTitle').value = '';
+      document.getElementById('taskDescription').value = '';
+    }
+
+    function findTaskColumn(id) {
+      return columns.find(c => tasks[c].some(t => t.id === id));
+    }
+
+    function moveTask(id, from, to) {
+      const index = tasks[from].findIndex(t => t.id === id);
+      if (index === -1) return;
+      const [task] = tasks[from].splice(index, 1);
+      task.movedToDoneAt = to === 'done' ? Date.now() : null;
+      tasks[to].push(task);
+      saveTasks();
+      renderBoard();
+    }
+
+    function exportData() {
+      const blob = new Blob([JSON.stringify(tasks, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'kanban-data.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function showReport() {
+      let report = '';
+      for (const col of columns) {
+        report += `**${col.toUpperCase()}**\n`;
+        tasks[col].forEach(t => {
+          if (!t.hidden) {
+            report += `* ${t.title}\n  ${t.description}\n`;
+          }
+        });
+        report += '\n';
+      }
+      document.getElementById('reportText').textContent = report;
+      document.getElementById('popup').style.display = 'block';
+    }
+
+    function hidePopup() {
+      document.getElementById('popup').style.display = 'none';
+    }
+
+    // Import JSON logic
+    document.getElementById('importFile').addEventListener('change', function(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const imported = JSON.parse(e.target.result);
+          if (columns.every(c => Array.isArray(imported[c]))) {
+            tasks = imported;
+            saveTasks();
+            renderBoard();
+          } else {
+            alert("Invalid file format");
+          }
+        } catch (err) {
+          alert("Failed to load JSON");
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    
+    // Auto-hide after N days in Done
+    setInterval(() => {
+      const now = Date.now();
+      const threshold = settings.hideAfterDays * 24 * 60 * 60 * 1000;
+      tasks.done = tasks.done.map(t =>
+        t.hidden || !t.movedToDoneAt || (now - t.movedToDoneAt < threshold)
+          ? t
+          : { ...t, hidden: true }
+      );
+      saveTasks();
+      renderBoard();
+    }, 60 * 1000); // every minute
+
+    renderBoard();
+  </script>
+</body>
+</html>
+
