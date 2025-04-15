@@ -17,47 +17,46 @@
     .popup { position: fixed; top: 10%; left: 10%; right: 10%; background: #fff; border: 1px solid #ccc; padding: 20px; z-index: 1000; max-height: 80%; overflow: auto; }
     .popup pre { white-space: pre-wrap; word-break: break-word; }
     .overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 999; }
-    .input_days { position: fixed; top: 10px; right: 10px; width: 50px;}
+    .input_days { position: fixed; top: 10px; right: 50px; }
+    .input_days_input {width: 50px; }
+    .task-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+    }
 
-.task-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: start;
-}
+    .top-right-btn {
+        background: none;
+        border: none;
+        font-size: 1rem;
+        cursor: pointer;
+        padding: 0;
+        margin-left: 8px;
+    }
 
-.top-right-btn {
-  background: none;
-  border: none;
-  font-size: 1rem;
-  cursor: pointer;
-  padding: 0;
-  margin-left: 8px;
-}
+    .top-right-btn:hover {
+        background: #eee;
+        border-radius: 4px;
+    }
 
-.top-right-btn:hover {
-  background: #eee;
-  border-radius: 4px;
-}
-
-.controls button {
-  background: none;
-  border: none;
-  font-size: 1rem;
-  cursor: pointer;
-  padding: 2px 6px;
-}
-.controls button:hover {
-  background: #eee;
-  border-radius: 4px;
-}
+    .controls button {
+        background: none;
+        border: none;
+        font-size: 1rem;
+        cursor: pointer;
+        padding: 2px 6px;
+    }
+    .controls button:hover {
+        background: #eee;
+        border-radius: 4px;
+    }
 </style>
 </head>
 <body>
+    <span class="input_days">Hide <i>done</i> after <input type="number" id="hideAfterDays" min="-1" size="3" type="number" onchange="housekeeping()" class="input_days_input"/> days</span>
+    <h1>My Todo List</h1>
 
-  <h1>My Todo List</h1>
-    <input type="number" id="hideAfterDays" min="-1" class="input_days" size="3" type="number" onchange="housekeeping()"/>
-
-  <div class="actions">
+    <div class="actions">
     <button onclick="exportData()">Export JSON</button>
     <input type="file" id="importFile" style="display:none" accept=".json" />
     <button onclick="document.getElementById('importFile').click()">Import JSON</button>
