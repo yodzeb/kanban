@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Kanban Board</title>
+  <title>Todo list</title>
   <style>
     body { font-family: sans-serif; margin: 20px; background: #f8f9fa; }
     .board { display: flex; gap: 20px; flex-wrap: wrap; }
@@ -17,13 +17,45 @@
     .popup { position: fixed; top: 10%; left: 10%; right: 10%; background: #fff; border: 1px solid #ccc; padding: 20px; z-index: 1000; max-height: 80%; overflow: auto; }
     .popup pre { white-space: pre-wrap; word-break: break-word; }
     .overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 999; }
-    .input_days { position: fixed; top: 10px; right: 10px; }
-  </style>
+    .input_days { position: fixed; top: 10px; right: 10px; width: 50px;}
+
+.task-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+}
+
+.top-right-btn {
+  background: none;
+  border: none;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 8px;
+}
+
+.top-right-btn:hover {
+  background: #eee;
+  border-radius: 4px;
+}
+
+.controls button {
+  background: none;
+  border: none;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+.controls button:hover {
+  background: #eee;
+  border-radius: 4px;
+}
+</style>
 </head>
 <body>
 
-  <h1>Simple Kanban Board</h1>
-  <input type="number" id="hideAfterDays" min="-1" class="input_days" size="3" type="number" onchange="housekeeping()"/>
+  <h1>My Todo List</h1>
+    <input type="number" id="hideAfterDays" min="-1" class="input_days" size="3" type="number" onchange="housekeeping()"/>
 
   <div class="actions">
     <button onclick="exportData()">Export JSON</button>
@@ -54,7 +86,7 @@
   <script>
     const STORAGE_KEY = 'kanbanData';
     const SETTINGS_KEY = 'kanbanSettings';
-    const columns = ['todo', 'doing', 'done'];
+    const columns = [ 'todo', 'doing', 'done' ];
 
     let tasks = JSON.parse(localStorage.getItem(STORAGE_KEY)) || { todo: [], doing: [], done: [] };
     let settings = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || { hideAfterDays: 7 };
@@ -69,7 +101,7 @@
 
         tasks[column].forEach ((t, index) => {
             if (t.id == id) {
-                if (confirm("Delete "+t.title)) {
+                if (confirm("Delete  >>"+t.title+ "<<   ??")) {
                     tasks[column].splice(index, 1);
                     saveTasks();
                     renderBoard();
@@ -83,9 +115,10 @@
     function editTask(id, column, button) {
         const taskIndex = tasks[column].findIndex(t => t.id === id);
         const task = tasks[column][taskIndex];
+        console.log(task);
         const taskEl = button.closest('.task');
-        const content = taskEl.querySelector('strong').textContent;
-        const desc = taskEl.querySelector('p').textContent;
+        const content = task['title'] //taskEl.querySelector('strong').textContent;
+        const desc = task['description']; //taskEl.querySelector('p').textContent;
 
         taskEl.innerHTML = `
     <input type="text" value="${content}" class="edit-title" style="width:100%; margin-bottom:5px;" />
@@ -135,14 +168,17 @@
                 taskEl.draggable = true;
                 taskEl.ondragstart = e => e.dataTransfer.setData('text/plain', task.id);
                 taskEl.innerHTML = `
-            <strong>${task.title}</strong>
-            <p>${task.description}</p>
-            <div class="controls">
-             ${columns.filter(c => c !== column).map(c => `<button onclick="moveTask(${task.id}, '${column}', '${c}')">${c}</button>`).join('')}
-             <button onclick="editTask(${task.id}, '${column}', this)">Edit</button>
-             <button onclick="deleteTask(${task.id}, '${column}')">Delete</button>
-            </div>`;
+ <div class="task-header">
+    <strong>${task.title}</strong>
+    <div class="controls">
+      <button title="Edit" onclick="editTask(${task.id}, '${column}', this)">✎</button>
+      <button title="Delete" onclick="deleteTask(${task.id}, '${column}')">&#10060;</button>
+    </div>
+  </div>
+  <div class="description">${task.description}</div>
+`;
                 col.appendChild(taskEl);
+
             });
             board.appendChild(col);
         }
