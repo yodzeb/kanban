@@ -17,19 +17,13 @@
     .popup { position: fixed; top: 10%; left: 10%; right: 10%; background: #fff; border: 1px solid #ccc; padding: 20px; z-index: 1000; max-height: 80%; overflow: auto; }
     .popup pre { white-space: pre-wrap; word-break: break-word; }
     .overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 999; }
+    .input_days { position: fixed; top: 10px; right: 10px; }
   </style>
 </head>
 <body>
 
   <h1>Simple Kanban Board</h1>
-
-  <div class="settings">
-    <label>
-      Hide tasks in "Done" after
-      <input type="number" id="hideAfterDays" min="1" />
-      days
-    </label>
-  </div>
+  <input type="number" id="hideAfterDays" min="-1" class="input_days" size="3" type="number" onchange="housekeeping()"/>
 
   <div class="actions">
     <button onclick="exportData()">Export JSON</button>
@@ -83,7 +77,9 @@
             }
         });
     }
-    
+
+
+      
     function editTask(id, column, button) {
         const taskIndex = tasks[column].findIndex(t => t.id === id);
         const task = tasks[column][taskIndex];
@@ -114,31 +110,31 @@
     }
     
     function saveTasks() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
     }
 
     function renderBoard() {
-      const board = document.getElementById('board');
-      board.innerHTML = '';
-      for (const column of columns) {
-        const col = document.createElement('div');
-        col.className = 'column';
-        col.dataset.column = column;
-        col.ondragover = e => e.preventDefault();
-        col.ondrop = e => {
-          const id = parseInt(e.dataTransfer.getData('text/plain'));
-          const from = findTaskColumn(id);
-          if (from && from !== column) moveTask(id, from, column);
-        };
-
-        col.innerHTML = `<h2>${column.toUpperCase()}</h2>`;
-        tasks[column].forEach(task => {
-          if (task.hidden) return;
-          const taskEl = document.createElement('div');
-          taskEl.className = 'task';
-          taskEl.draggable = true;
-          taskEl.ondragstart = e => e.dataTransfer.setData('text/plain', task.id);
-          taskEl.innerHTML = `
+        const board = document.getElementById('board');
+        board.innerHTML = '';
+        for (const column of columns) {
+            const col = document.createElement('div');
+            col.className = 'column';
+            col.dataset.column = column;
+            col.ondragover = e => e.preventDefault();
+            col.ondrop = e => {
+                const id = parseInt(e.dataTransfer.getData('text/plain'));
+                const from = findTaskColumn(id);
+                if (from && from !== column) moveTask(id, from, column);
+            };
+            
+            col.innerHTML = `<h2>${column.toUpperCase()}</h2>`;
+            tasks[column].forEach(task => {
+                if (task.hidden) return;
+                const taskEl = document.createElement('div');
+                taskEl.className = 'task';
+                taskEl.draggable = true;
+                taskEl.ondragstart = e => e.dataTransfer.setData('text/plain', task.id);
+                taskEl.innerHTML = `
             <strong>${task.title}</strong>
             <p>${task.description}</p>
             <div class="controls">
@@ -146,10 +142,10 @@
              <button onclick="editTask(${task.id}, '${column}', this)">Edit</button>
              <button onclick="deleteTask(${task.id}, '${column}')">Delete</button>
             </div>`;
-          col.appendChild(taskEl);
-        });
-        board.appendChild(col);
-      }
+                col.appendChild(taskEl);
+            });
+            board.appendChild(col);
+        }
     }
 
     function addTask() {
@@ -197,58 +193,67 @@
 
     function showReport() {
       let report = '';
-      for (const col of columns) {
-        report += `**${col.toUpperCase()}**\n`;
-        tasks[col].forEach(t => {
-          if (!t.hidden) {
-            report += `* ${t.title}\n  ${t.description}\n`;
-          }
-        });
-        report += '\n';
-      }
-      document.getElementById('reportText').textContent = report;
-      document.getElementById('popup').style.display = 'block';
+        for (const col of columns) {
+            //if (tasks[col].length > 0) {
+                report += `- **${col.toUpperCase()}**\n`;
+                tasks[col].forEach(t => {
+                    if (!t.hidden) {
+                        report += `  - *${t.title}*:  ${t.description}\n`;
+                    }
+                });
+                report += '\n';
+            //}
+        }
+        document.getElementById('reportText').textContent = report;
+        document.getElementById('popup').style.display = 'block';
     }
 
     function hidePopup() {
       document.getElementById('popup').style.display = 'none';
     }
 
+
     // Import JSON logic
     document.getElementById('importFile').addEventListener('change', function(event) {
-      const file = event.target.files[0];
-      if (!file) return;
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const imported = JSON.parse(e.target.result);
+                console.log(imported);
+                if (columns.every(c => Array.isArray(imported[c]))) {
+                    tasks = imported;
+                } else {
+                    alert("Invalid file format");
+                }
+                housekeeping();
 
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        try {
-          const imported = JSON.parse(e.target.result);
-          if (columns.every(c => Array.isArray(imported[c]))) {
-            tasks = imported;
-            saveTasks();
-            renderBoard();
-          } else {
-            alert("Invalid file format");
-          }
-        } catch (err) {
-          alert("Failed to load JSON");
-        }
-      };
-      reader.readAsText(file);
+            } catch (err) {
+                alert("Failed to load JSON");
+            }
+        };
+        reader.readAsText(file);
     });
 
+
+    function housekeeping() {
+        console.log ("housekeeping")
+        const now = Date.now();
+        const threshold = settings.hideAfterDays * 24 * 60 * 60 * 1000;
+        tasks.done = tasks.done.map(t =>
+            t.hidden || !t.movedToDoneAt || (now - t.movedToDoneAt < threshold)
+                ? { ...t, hidden: false }
+                : { ...t, hidden: true }
+        );
+        saveTasks();
+        renderBoard();
+    }
     
     // Auto-hide after N days in Done
     setInterval(() => {
-      const now = Date.now();
-      const threshold = settings.hideAfterDays * 24 * 60 * 60 * 1000;
-      tasks.done = tasks.done.map(t =>
-        t.hidden || !t.movedToDoneAt || (now - t.movedToDoneAt < threshold)
-          ? t
-          : { ...t, hidden: true }
-      );
-      saveTasks();
-      renderBoard();
+        housekeeping();
     }, 60 * 1000); // every minute
 
     renderBoard();
