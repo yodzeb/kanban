@@ -166,9 +166,9 @@
                console.log("nnne");
                showNewTask();
            }
-           else {
-               console.log("prohibit");
-           }
+       }
+       else {
+           console.log("prohibit");
        }
    }
    document.addEventListener("keydown", handleShortcut);
@@ -242,15 +242,25 @@
                 };
                 
                 col.innerHTML = `<h2>${column.toUpperCase()}</h2>`;
+                total = 0;
                 tasks[column].forEach(task => {
                     if (task.hidden) return;
                     const taskEl = document.createElement('div');
                     taskEl.className = 'task';
                     taskEl.draggable = true;
                     taskEl.ondragstart = e => e.dataTransfer.setData('text/plain', task.id);
+                    if (column == 'done')
+                        timing = (task.movedToDoneAt - task.createdAt) / (24*60*60*1000);
+                    else
+                        timing = (Date.now() - task.createdAt) / (24*60*60*1000);
+                    total += timing;
+                    if (timing < 1)
+                        timing = Math.floor(timing/24)+'h';
+                    else
+                        timing = Math.floor(timing)+'d'
                     taskEl.innerHTML = `
                         <div class="task-header">
-                            <strong>${task.title}</strong>
+                            <strong>${task.title}</strong><small><i>${timing}</i></small>
                             <div class="controls">
                                 <button title="Edit" onclick="editTask(${task.id}, '${column}', this)">✎</button>
                                 <button title="Delete" onclick="deleteTask(${task.id}, '${column}')">&#10060;</button>
@@ -259,8 +269,20 @@
                         <div class="description">${task.description}</div>
                     `;
                     col.appendChild(taskEl);
-                    
                 });
+                if (tasks[column].length > 0) {
+                    console.log(column);
+                    console.log(total);
+                    total = total / tasks[column].length;
+                    console.log(total);
+                    if (total < 1)
+                        total = Math.floor(total*24)+'h';
+                    else
+                        total = Math.floor(total)+'d';
+                    tot = document.createElement("div");
+                    tot.innerHTML = "<small>avg: "+total+"</small>";
+                    col.appendChild(tot);
+                }
                 board.appendChild(col);
             }
 
