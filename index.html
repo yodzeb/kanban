@@ -115,8 +115,8 @@
    const STORAGE_KEY = 'kanbanData';
    const SETTINGS_KEY = 'kanbanSettings';
    const columns = [ 'idea', 'todo', 'doing', 'done' ];
-   
-   let tasks = JSON.parse(localStorage.getItem(STORAGE_KEY)) || { idea: [], todo: [], doing: [], done: [] };
+   let default_tasks = { idea: [], todo: [], doing: [], done: [] };
+   let tasks = JSON.parse(localStorage.getItem(STORAGE_KEY)) || default_tasks;
    let settings = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || { hideAfterDays: 7, idea: true };
    
    document.getElementById('hideAfterDays').value = settings.hideAfterDays;
@@ -154,10 +154,14 @@
    function handleShortcut(event) {
        if (event.key == "Escape" && editMode) {
            cancelNewTask();
+           hidePopup();
        }
-       if (event.key === "n") {
-           not_for = [ "input", "textarea" ];
-           if (!not_for.includes(event.target.tagName.toLowerCase())) {
+       not_for = [ "input", "textarea" ];
+       if (!not_for.includes(event.target.tagName.toLowerCase())) {
+           if (event.key === "r") {
+               showReport();
+           }
+           if (event.key === "n") {
                event.preventDefault();
                console.log("nnne");
                showNewTask();
@@ -309,9 +313,11 @@
       URL.revokeObjectURL(url);
     }
 
-    function showReport() {
-      let report = '';
-        for (const col of columns) {
+   
+   function showReport() {
+       editMode = true;
+       let report = '';
+       for (const col of columns) {
             //if (tasks[col].length > 0) {
                 report += `- **${col.toUpperCase()}**\n`;
                 tasks[col].forEach(t => {
@@ -324,15 +330,18 @@
         }
         document.getElementById('reportText').textContent = report;
         document.getElementById('popup').style.display = 'block';
+        document.getElementById('overlay').style.display="block";
     }
 
-    function hidePopup() {
-      document.getElementById('popup').style.display = 'none';
-    }
+   function hidePopup() {
+       editMode = false;
+       document.getElementById('popup').style.display = 'none';
+       document.getElementById('overlay').style.display="none";
+   }
 
 
-    // Import JSON logic
-    document.getElementById('importFile').addEventListener('change', function(event) {
+   // Import JSON logic
+   document.getElementById('importFile').addEventListener('change', function(event) {
         const file = event.target.files[0];
         if (!file) return;
         
@@ -340,12 +349,14 @@
         reader.onload = function(e) {
             try {
                 const imported = JSON.parse(e.target.result);
-                console.log(imported);
-                if (columns.every(c => Array.isArray(imported[c]))) {
-                    tasks = imported;
-                } else {
-                    alert("Invalid file format");
+                tasks = default_tasks;
+                console.log(columns);
+                for (c in imported) {
+                    if (columns.includes(c)) {
+                        tasks[c] = imported[c];
+                    }
                 }
+                
                 housekeeping();
 
             } catch (err) {
@@ -357,7 +368,7 @@
 
 
     function housekeeping() {
-        console.log ("housekeeping")
+        //console.log ("housekeeping")
         const now = Date.now();
         const threshold = settings.hideAfterDays * 24 * 60 * 60 * 1000;
         tasks.done = tasks.done.map(t =>
