@@ -17,7 +17,7 @@
     .popup { position: fixed; top: 10%; left: 10%; right: 10%; background: #fff; border: 1px solid #ccc; padding: 20px; z-index: 1000; max-height: 80%; overflow: auto; }
     .popup pre { white-space: pre-wrap; word-break: break-word; }
     .overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 999; }
-    .input_days { position: fixed; top: 10px; right: 50px; }
+    .input_days { position: fixed; top: 10px; right: 50px; text-align:right; }
     .input_days_input {width: 50px; }
     .task-header {
         display: flex;
@@ -53,7 +53,10 @@
 </style>
 </head>
 <body>
-    <span class="input_days">Hide <i>done</i> after <input type="number" id="hideAfterDays" min="-1" size="3" type="number" onchange="housekeeping()" class="input_days_input"/> days</span>
+    <div class="input_days">
+        <div>Hide <i>done</i> after <input type="number" id="hideAfterDays" min="-1" size="3" type="number" onchange="housekeeping()" class="input_days_input"/> days</div>
+        <div>Idea column<input id="idea_switch" type="checkbox" name="Idea" onchange="toggleIdea()" /></div>
+    </div>
     <h1>My Todo List</h1>
 
     <div class="actions">
@@ -82,22 +85,29 @@
   </div>
 
   
-    <script>
-    editMode = false;
-    const STORAGE_KEY = 'kanbanData';
-    const SETTINGS_KEY = 'kanbanSettings';
-    const columns = [ 'todo', 'doing', 'done' ];
-
-    let tasks = JSON.parse(localStorage.getItem(STORAGE_KEY)) || { todo: [], doing: [], done: [] };
-    let settings = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || { hideAfterDays: 7 };
-
-    document.getElementById('hideAfterDays').value = settings.hideAfterDays;
-    document.getElementById('hideAfterDays').addEventListener('input', e => {
-      settings.hideAfterDays = parseInt(e.target.value) || 1;
-      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-    });
-
-    function deleteTask(id, column) {
+  <script>
+   editMode = false;
+   const STORAGE_KEY = 'kanbanData';
+   const SETTINGS_KEY = 'kanbanSettings';
+   const columns = [ 'idea', 'todo', 'doing', 'done' ];
+   
+   let tasks = JSON.parse(localStorage.getItem(STORAGE_KEY)) || { idea: [], todo: [], doing: [], done: [] };
+   let settings = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || { hideAfterDays: 7, idea: true };
+   
+   document.getElementById('hideAfterDays').value = settings.hideAfterDays;
+   document.getElementById('idea_switch').checked = settings.idea;
+   document.getElementById('hideAfterDays').addEventListener('input', e => {
+       settings.hideAfterDays = parseInt(e.target.value) || 1;
+       localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+   });
+   
+   function toggleIdea() {
+       settings['idea'] = document.getElementById('idea_switch').checked;
+       localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+       renderBoard();
+   }
+   
+     function deleteTask(id, column) {
 
         tasks[column].forEach ((t, index) => {
             if (t.id == id) {
@@ -109,14 +119,11 @@
             }
         });
     }
-
-
       
     function editTask(id, column, button) {
         editMode = true;
         const taskIndex = tasks[column].findIndex(t => t.id === id);
         const task = tasks[column][taskIndex];
-        console.log(task);
         const taskEl = button.closest('.task');
         const content = task['title'] //taskEl.querySelector('strong').textContent;
         const desc = task['description']; //taskEl.querySelector('p').textContent;
@@ -152,37 +159,42 @@
         const board = document.getElementById('board');
         board.innerHTML = '';
         for (const column of columns) {
-            const col = document.createElement('div');
-            col.className = 'column';
-            col.dataset.column = column;
-            col.ondragover = e => e.preventDefault();
-            col.ondrop = e => {
-                const id = parseInt(e.dataTransfer.getData('text/plain'));
-                const from = findTaskColumn(id);
-                if (from && from !== column) moveTask(id, from, column);
-            };
-            
-            col.innerHTML = `<h2>${column.toUpperCase()}</h2>`;
-            tasks[column].forEach(task => {
-                if (task.hidden) return;
-                const taskEl = document.createElement('div');
-                taskEl.className = 'task';
-                taskEl.draggable = true;
-                taskEl.ondragstart = e => e.dataTransfer.setData('text/plain', task.id);
-                taskEl.innerHTML = `
- <div class="task-header">
-    <strong>${task.title}</strong>
-    <div class="controls">
-      <button title="Edit" onclick="editTask(${task.id}, '${column}', this)">✎</button>
-      <button title="Delete" onclick="deleteTask(${task.id}, '${column}')">&#10060;</button>
-    </div>
-  </div>
-  <div class="description">${task.description}</div>
-`;
-                col.appendChild(taskEl);
+            if (! (column in tasks))
+                tasks[column] = [];
+            if (column != 'idea' || settings.idea ) {
+                const col = document.createElement('div');
+                col.className = 'column';
+                col.dataset.column = column;
+                col.ondragover = e => e.preventDefault();
+                col.ondrop = e => {
+                    const id = parseInt(e.dataTransfer.getData('text/plain'));
+                    const from = findTaskColumn(id);
+                    if (from && from !== column) moveTask(id, from, column);
+                };
+                
+                col.innerHTML = `<h2>${column.toUpperCase()}</h2>`;
+                tasks[column].forEach(task => {
+                    if (task.hidden) return;
+                    const taskEl = document.createElement('div');
+                    taskEl.className = 'task';
+                    taskEl.draggable = true;
+                    taskEl.ondragstart = e => e.dataTransfer.setData('text/plain', task.id);
+                    taskEl.innerHTML = `
+                        <div class="task-header">
+                            <strong>${task.title}</strong>
+                            <div class="controls">
+                                <button title="Edit" onclick="editTask(${task.id}, '${column}', this)">✎</button>
+                                <button title="Delete" onclick="deleteTask(${task.id}, '${column}')">&#10060;</button>
+                            </div>
+                        </div>
+                        <div class="description">${task.description}</div>
+                    `;
+                    col.appendChild(taskEl);
+                    
+                });
+                board.appendChild(col);
+            }
 
-            });
-            board.appendChild(col);
         }
     }
 
