@@ -289,13 +289,18 @@
         renderBoard();
     }
 
-
+     tick = 0
 
     // Auto-hide after N days in Done
-    setInterval(() => {
-        if (! editMode ) {
-            housekeeping();
-        }
+     setInterval(() => {
+         tick ++;
+         if (tick % (12*60*4) == 0) {
+             console.log("backup");
+             exportData();
+         }
+         if (! editMode ) {
+             housekeeping();
+         }
     }, 5 * 1000); // every minute
 
 
