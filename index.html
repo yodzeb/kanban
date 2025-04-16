@@ -243,8 +243,10 @@
                 
                 col.innerHTML = `<h2>${column.toUpperCase()}</h2>`;
                 total = 0;
+                count = 0
                 tasks[column].forEach(task => {
                     if (task.hidden) return;
+                    count ++;
                     const taskEl = document.createElement('div');
                     taskEl.className = 'task';
                     taskEl.draggable = true;
@@ -270,11 +272,8 @@
                     `;
                     col.appendChild(taskEl);
                 });
-                if (tasks[column].length > 0) {
-                    console.log(column);
-                    console.log(total);
-                    total = total / tasks[column].length;
-                    console.log(total);
+                if (count > 0) {
+                    total = total / count;
                     if (total < 1)
                         total = Math.floor(total*24)+'h';
                     else
@@ -372,7 +371,6 @@
             try {
                 const imported = JSON.parse(e.target.result);
                 tasks = default_tasks;
-                console.log(columns);
                 for (c in imported) {
                     if (columns.includes(c)) {
                         tasks[c] = imported[c];
@@ -390,7 +388,6 @@
 
 
     function housekeeping() {
-        //console.log ("housekeeping")
         const now = Date.now();
         const threshold = settings.hideAfterDays * 24 * 60 * 60 * 1000;
         tasks.done = tasks.done.map(t =>
