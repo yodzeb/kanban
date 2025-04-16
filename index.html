@@ -293,7 +293,7 @@
         const now = Date.now();
         const threshold = settings.hideAfterDays * 24 * 60 * 60 * 1000;
         tasks.done = tasks.done.map(t =>
-            t.hidden || !t.movedToDoneAt || (now - t.movedToDoneAt < threshold)
+            !t.movedToDoneAt || (now - t.movedToDoneAt < threshold)
                 ? { ...t, hidden: false }
                 : { ...t, hidden: true }
         );
