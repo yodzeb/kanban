@@ -5,52 +5,73 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Todo list</title>
   <style>
-    body { font-family: sans-serif; margin: 20px; background: #f8f9fa; }
-    .board { display: flex; gap: 20px; flex-wrap: wrap; }
-    .column { flex: 1; min-width: 250px; background: #fff; border: 1px solid #ccc; border-radius: 8px; padding: 10px; }
-    .column h2 { margin-top: 0; }
-    .task { border: 1px solid #ddd; border-radius: 6px; padding: 8px; margin-bottom: 10px; background: #fefefe; }
-    .controls { margin-top: 10px; }
-    .controls button { margin-right: 5px; }
-    .new-task, .settings { margin-top: 20px; }
-    .new-task input, .new-task textarea, .settings input { width: 100%; margin-bottom: 10px; padding: 5px; }
-    .popup { position: fixed; top: 10%; left: 10%; right: 10%; background: #fff; border: 1px solid #ccc; padding: 20px; z-index: 1000; max-height: 80%; overflow: auto; }
-    .popup pre { white-space: pre-wrap; word-break: break-word; }
-    .overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 999; }
-    .input_days { position: fixed; top: 10px; right: 50px; text-align:right; }
-    .input_days_input {width: 50px; }
-    .task-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: start;
-    }
+   body { font-family: sans-serif; margin: 20px; background: #f8f9fa; }
+   .board { display: flex; gap: 20px; flex-wrap: wrap; }
+   .column { flex: 1; min-width: 250px; background: #fff; border: 1px solid #ccc; border-radius: 8px; padding: 10px; }
+   .column h2 { margin-top: 0; }
+   .task { border: 1px solid #ddd; border-radius: 6px; padding: 8px; margin-bottom: 10px; background: #fefefe; }
+   .controls { margin-top: 10px; }
+   .controls button { margin-right: 5px; }
+   .new-task {
+       position: fixed;
+       top: 50%;
+       left: 50%;
+       transform: translate(-50%, -50%);
+       background: white;
+       padding: 2em;
+       border-radius: 8px;
+       z-index: 1000;
+       display: none;
+       width: 300px;
+   }
+   #   .new-task, .settings { margin-top: 20px;  display: none; }
+   .new-task input, .new-task textarea, .settings input { width: 100%; margin-bottom: 10px; padding: 5px; }
+   .popup { position: fixed; top: 10%; left: 10%; right: 10%; background: #fff; border: 1px solid #ccc; padding: 20px; z-index: 1000; max-height: 80%; overflow: auto; }
+   .popup pre { white-space: pre-wrap; word-break: break-word; }
+   .overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 999; }
+   .input_days { position: fixed; top: 10px; right: 50px; text-align:right; }
+   .input_days_input {width: 50px; }
+   .task-header {
+       display: flex;
+       justify-content: space-between;
+       align-items: start;
+   }
 
-    .top-right-btn {
-        background: none;
-        border: none;
-        font-size: 1rem;
-        cursor: pointer;
-        padding: 0;
-        margin-left: 8px;
-    }
+   .top-right-btn {
+       background: none;
+       border: none;
+       font-size: 1rem;
+       cursor: pointer;
+       padding: 0;
+       margin-left: 8px;
+   }
 
-    .top-right-btn:hover {
-        background: #eee;
-        border-radius: 4px;
-    }
+   .top-right-btn:hover {
+       background: #eee;
+       border-radius: 4px;
+   }
 
-    .controls button {
-        background: none;
-        border: none;
-        font-size: 1rem;
-        cursor: pointer;
-        padding: 2px 6px;
-    }
-    .controls button:hover {
-        background: #eee;
-        border-radius: 4px;
-    }
-</style>
+   .controls button {
+       background: none;
+       border: none;
+       font-size: 1rem;
+       cursor: pointer;
+       padding: 2px 6px;
+   }
+   .controls button:hover {
+       background: #eee;
+       border-radius: 4px;
+   }
+
+   #overlay {
+       position: fixed;
+       inset: 0;
+       background: rgba(0, 0, 0, 0.5);
+       backdrop-filter: blur(5px);
+       display: none;
+       z-index: 999;
+   }
+  </style>
 </head>
 <body>
     <div class="input_days">
@@ -59,21 +80,25 @@
     </div>
     <h1>My Todo List</h1>
 
+    <div id="overlay"></div>
     <div class="actions">
     <button onclick="exportData()">Export JSON</button>
     <input type="file" id="importFile" style="display:none" accept=".json" />
     <button onclick="document.getElementById('importFile').click()">Import JSON</button>
     <button onclick="showReport()">Generate Report</button>
+    <button onclick="showNewTask()">New task</button>
   </div>
 
   <div class="board" id="board"></div>
 
-    <div class="new-task">
+
+  <div class="new-task" id="new_task">
     <h2>Add New Task</h2>
     <input type="text" id="taskTitle" placeholder="Title" />
     <textarea id="taskDescription" placeholder="Description"></textarea>
     <button onclick="addTask()">Add Task</button>
-    </div>
+    <button onclick="cancelNewTask()">Cancel</button>
+  </div>
 
   <div id="popup" style="display:none;">
     <div class="overlay" onclick="hidePopup()"></div>
@@ -100,16 +125,54 @@
        settings.hideAfterDays = parseInt(e.target.value) || 1;
        localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
    });
+
    
+
+   function showNewTask() {
+       editMode = true;
+       console.log("ohh");
+       document.getElementById("new_task").style.display="block";
+       document.getElementById("taskTitle").focus();
+       document.getElementById('overlay').style.display="block";
+   }
+
+   
+   function cancelNewTask() {
+       editMode = false;
+       document.getElementById('taskTitle').value = '';
+       document.getElementById('taskDescription').value = '';
+       document.getElementById("new_task").style.display="none";
+       document.getElementById('overlay').style.display="none";
+   }
    function toggleIdea() {
        settings['idea'] = document.getElementById('idea_switch').checked;
        localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
        renderBoard();
    }
-   
-     function deleteTask(id, column) {
 
-        tasks[column].forEach ((t, index) => {
+
+   function handleShortcut(event) {
+       if (event.key == "Escape" && editMode) {
+           cancelNewTask();
+       }
+       if (event.key === "n") {
+           not_for = [ "input", "textarea" ];
+           if (!not_for.includes(event.target.tagName.toLowerCase())) {
+               event.preventDefault();
+               console.log("nnne");
+               showNewTask();
+           }
+           else {
+               console.log("prohibit");
+           }
+       }
+   }
+   document.addEventListener("keydown", handleShortcut);
+
+   
+   function deleteTask(id, column) {
+
+       tasks[column].forEach ((t, index) => {
             if (t.id == id) {
                 if (confirm("Delete  >>"+t.title+ "<<   ??")) {
                     tasks[column].splice(index, 1);
@@ -149,9 +212,11 @@
             renderBoard();
         }
         editMode = false;
+        document.getElementById("new_task").style.display="none";
+
     }
-    
-    function saveTasks() {
+   
+   function saveTasks() {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
     }
 
@@ -198,26 +263,29 @@
         }
     }
 
-    function addTask() {
-      const title = document.getElementById('taskTitle').value.trim();
-      const description = document.getElementById('taskDescription').value.trim();
-      if (!title) return;
-      const task = {
-        id: Date.now(),
-        title,
-        description,
-        createdAt: Date.now(),
-        movedToDoneAt: null,
-        hidden: false
-      };
-      tasks.todo.push(task);
-      saveTasks();
-      renderBoard();
-      document.getElementById('taskTitle').value = '';
-      document.getElementById('taskDescription').value = '';
-    }
+   function addTask() {
+       const title = document.getElementById('taskTitle').value.trim();
+       const description = document.getElementById('taskDescription').value.trim();
+       if (!title) return;
+       const task = {
+           id: Date.now(),
+           title,
+           description,
+           createdAt: Date.now(),
+           movedToDoneAt: null,
+           hidden: false
+       };
+       tasks.todo.push(task);
+       saveTasks();
+       renderBoard();
+       document.getElementById('taskTitle').value = '';
+       document.getElementById('taskDescription').value = '';
+       editMode = false;
+       document.getElementById("new_task").style.display="none";
+       document.getElementById('overlay').style.display="none";
+   }
 
-    function findTaskColumn(id) {
+   function findTaskColumn(id) {
       return columns.find(c => tasks[c].some(t => t.id === id));
     }
 
