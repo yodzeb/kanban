@@ -153,9 +153,12 @@
 
 
    function handleShortcut(event) {
-       if (event.key == "Escape" && editMode) {
-           cancelNewTask();
-           hidePopup();
+       if (event.key == "Escape") {
+           if (editMode) {
+               cancelNewTask();
+               hidePopup();
+           }
+           document.activeElement.blur();
        }
        not_for = [ "input", "textarea" ];
        if (!not_for.includes(event.target.tagName.toLowerCase())) {
@@ -354,15 +357,14 @@
        editMode = true;
        let report = '';
        for (const col of columns) {
-            //if (tasks[col].length > 0) {
-                report += `- **${col.toUpperCase()}**\n`;
-                tasks[col].forEach(t => {
-                    if (!t.hidden) {
-                        report += `  - *${t.title}*:  ${t.description.replaceAll("\n", " / ")}\n`;
-                    }
-                });
-                report += '\n';
-            //}
+           report += `- **${col.toUpperCase()}**\n`;
+           //tasks[col].forEach(t => {
+           tasks[col].sort((a,b) => a.title.localeCompare(b.title)).forEach(t => {
+               if (!t.hidden) {
+               report += `  - *${t.title}*:  ${t.description.replaceAll("\n", " / ")}\n`;
+               }
+           });
+           report += '\n';
         }
         document.getElementById('reportText').textContent = report;
         document.getElementById('popup').style.display = 'block';
