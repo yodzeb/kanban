@@ -172,6 +172,11 @@
            }
            if (event.key === "/") {
                document.getElementById("input_search").focus();
+               document.getElementById("input_search").select();
+           }
+           if (event.key === "h") {
+               document.getElementById("hideAfterDays").focus();
+               document.getElementById("hideAfterDays").select();
            }
        }
        else {
