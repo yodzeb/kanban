@@ -76,6 +76,7 @@
 <body>
     <div class="input_days">
         <div>Hide <i>done</i> after <input type="number" id="hideAfterDays" min="-1" size="3" type="number" onchange="housekeeping()" class="input_days_input"/> days</div>
+        <div>Search:<input id="input_search" type="text" name="searchbox" onchange="housekeeping()"></div>
         <div>Idea column<input id="idea_switch" type="checkbox" name="Idea" onchange="toggleIdea()" /></div>
     </div>
     <h1>My Todo List</h1>
@@ -166,12 +167,16 @@
                console.log("nnne");
                showNewTask();
            }
+           if (event.key === "/") {
+               document.getElementById("input_search").focus();
+           }
        }
        else {
+           housekeeping();
            console.log("prohibit");
        }
    }
-   document.addEventListener("keydown", handleShortcut);
+   document.addEventListener("keyup", handleShortcut);
 
    
    function deleteTask(id, column) {
@@ -227,6 +232,8 @@
     function renderBoard() {
         const board = document.getElementById('board');
         board.innerHTML = '';
+        let search_val = document.getElementById("input_search").value;
+        console.log(search_val);
         for (const column of columns) {
             if (! (column in tasks))
                 tasks[column] = [];
@@ -245,7 +252,15 @@
                 total = 0;
                 count = 0
                 tasks[column].forEach(task => {
-                    if (task.hidden) return;
+                    if (task.hidden)
+                        return;
+                    if  (search_val.length > 0) {
+                        re = new RegExp(search_val,"i");
+                        console.log("filtering");
+                        if (!re.test(task.description) && !re.test(task.title)) {
+                            return;
+                        }
+                    }
                     count ++;
                     const taskEl = document.createElement('div');
                     taskEl.className = 'task';
@@ -387,7 +402,8 @@
     });
 
 
-    function housekeeping() {
+   function housekeeping() {
+       console.log("housekeeping");
         const now = Date.now();
         const threshold = settings.hideAfterDays * 24 * 60 * 60 * 1000;
         tasks.done = tasks.done.map(t =>
