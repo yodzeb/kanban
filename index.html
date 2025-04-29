@@ -362,11 +362,11 @@
        editMode = true;
        let report = '';
        for (const col of columns) {
-           report += `- <b>${col.toUpperCase()}</b>\n`;
+           report += `- *${col.toUpperCase()*}</b>\n`;
            //tasks[col].forEach(t => {
            tasks[col].sort((a,b) => a.title.localeCompare(b.title)).forEach(t => {
                if (!t.hidden) {
-               report += `  - <b>${t.title}</b>:  ${t.description.replaceAll("\n", " / ")}\n`;
+               report += `  - **${t.title}**:  ${t.description.replaceAll("\n", " / ")}\n`;
                }
            });
            report += '\n';
