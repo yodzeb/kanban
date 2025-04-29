@@ -362,7 +362,7 @@
        editMode = true;
        let report = '';
        for (const col of columns) {
-           report += `- *${col.toUpperCase()*}</b>\n`;
+           report += `- *${col.toUpperCase()}*</b>\n`;
            //tasks[col].forEach(t => {
            tasks[col].sort((a,b) => a.title.localeCompare(b.title)).forEach(t => {
                if (!t.hidden) {
