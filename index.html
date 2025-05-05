@@ -161,11 +161,14 @@
            document.activeElement.blur();
        }
        not_for = [ "input", "textarea" ];
+       if (event.target.name == "searchbox") {
+           housekeeping();
+       }
        if (!not_for.includes(event.target.tagName.toLowerCase())) {
            if (event.key === "r") {
                showReport();
            }
-           if (event.key === "n") {
+           if (event.key === "n" || event.key == "c") {
                event.preventDefault();
                console.log("nnne");
                showNewTask();
