@@ -86,7 +86,8 @@
     <button onclick="exportData()">Export JSON</button>
     <input type="file" id="importFile" style="display:none" accept=".json" />
     <button onclick="document.getElementById('importFile').click()">Import JSON</button>
-    <button onclick="showReport()">Generate Report</button>
+    <button onclick="showReport(genMarkdownReport)">Generate Markdown Report</button>
+    <button onclick="showReport(genHTMLReport)">Generate HTML Report</button>
     <button onclick="showNewTask()">New task</button>
   </div>
 
@@ -105,7 +106,7 @@
     <div class="overlay" onclick="hidePopup()"></div>
     <div class="popup">
       <h2>Report</h2>
-      <pre id="reportText"></pre>
+      <p id="reportText"></p>
       <button onclick="hidePopup()">Close</button>
     </div>
   </div>
@@ -360,12 +361,10 @@
       URL.revokeObjectURL(url);
     }
 
-   
-   function showReport() {
-       editMode = true;
-       let report = '';
+   function genMarkdownReport() {
+       let report = "<pre>";
        for (const col of columns) {
-           report += `- *${col.toUpperCase()}*</b>\n`;
+           report += `- *${col.toUpperCase()}*\n`;
            //tasks[col].forEach(t => {
            tasks[col].sort((a,b) => a.title.localeCompare(b.title)).forEach(t => {
                if (!t.hidden) {
@@ -373,11 +372,32 @@
                }
            });
            report += '\n';
-        }
-        document.getElementById('reportText').textContent = report;
-        document.getElementById('popup').style.display = 'block';
-        document.getElementById('overlay').style.display="block";
-    }
+       }
+       report += "</pre>";
+       return report;
+   }
+
+   function genHTMLReport() {
+       let report = "<ul>";
+       for (const col of columns) {
+           report += `<li><b>${col.toUpperCase()}</b>\n`;
+           report += "<ul>";
+           tasks[col].sort((a,b) => a.title.localeCompare(b.title)).forEach(t => {
+               report += `<li><b>${t.title}</b>: ${t.description.replaceAll("\n", " / ")}</li>\n`;
+           });
+           report += "</ul>";
+           report += "</li>";
+       }
+       report += "</ul>";
+       return report;                 
+   }
+   
+   function showReport(genfunc) {
+       editMode = true;
+       document.getElementById('reportText').innerHTML = genfunc();
+       document.getElementById('popup').style.display = 'block';
+       document.getElementById('overlay').style.display="block";
+   }
 
    function hidePopup() {
        editMode = false;
