@@ -165,11 +165,11 @@
        if (event.target.name == "searchbox") {
            housekeeping();
        }
-       if (!not_for.includes(event.target.tagName.toLowerCase())) {
+       else if (!not_for.includes(event.target.tagName.toLowerCase())) {
            if (event.key === "r") {
-               showReport();
+               showReport(genHTMLReport);
            }
-           if (event.key === "n" || event.key == "c") {
+           if (event.key === "n") {
                event.preventDefault();
                console.log("nnne");
                showNewTask();
