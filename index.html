@@ -368,7 +368,7 @@
            //tasks[col].forEach(t => {
            tasks[col].sort((a,b) => a.title.localeCompare(b.title)).forEach(t => {
                if (!t.hidden) {
-               report += `  - **${t.title}**:  ${t.description.replaceAll("\n", " / ")}\n`;
+                 report += `  - **${t.title}**:  ${t.description.replaceAll("\n", " / ")}\n`;
                }
            });
            report += '\n';
@@ -383,7 +383,9 @@
            report += `<li><b>${col.toUpperCase()}</b>\n`;
            report += "<ul>";
            tasks[col].sort((a,b) => a.title.localeCompare(b.title)).forEach(t => {
+             if (!t.hidden) {
                report += `<li><b>${t.title}</b>: ${t.description.replaceAll("\n", " / ")}</li>\n`;
+             }
            });
            report += "</ul>";
            report += "</li>";
